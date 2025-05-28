@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Rust
+target/
+Cargo.lock
+
+# Models and data
+*.pkl
+*.onnx
+test_data.json
+model_info.json
+
+# Results
+benchmarks/results/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
