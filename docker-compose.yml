@@ -6,8 +6,8 @@ services:
       context: .
       dockerfile: model/Dockerfile
     volumes:
-      - ./model:/app/model
-    command: python train_model.py
+      - ./model:/app/output
+    command: sh -c "python train_model.py && cp *.onnx *.json /app/output/"
     profiles: ["training"]
 
   # Python API
@@ -20,14 +20,6 @@ services:
     environment:
       - PYTHONPATH=/app
 
-  # Rust API
-  rust-api:
-    build: ./rust-api
-    ports:
-      - "8001:8001"
-    volumes:
-      - ./model:/app/model:ro
-
   # Benchmarking service
   benchmark:
     build:
@@ -38,6 +30,5 @@ services:
       - ./model:/app/model:ro
     depends_on:
       - python-api
-      - rust-api
     profiles: ["benchmark"]
     command: python benchmark.py

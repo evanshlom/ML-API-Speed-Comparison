@@ -2,7 +2,8 @@ use anyhow::Result;
 use ort::{Environment, Session, SessionBuilder, Value};
 use serde_json;
 use std::collections::HashMap;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
+use ndarray::{ArrayD, CowArray};
 
 static INFERENCE_ENGINE: OnceLock<InferenceEngine> = OnceLock::new();
 
@@ -13,7 +14,7 @@ pub struct InferenceEngine {
 
 impl InferenceEngine {
     pub fn new() -> Result<Self> {
-        let environment = Environment::builder().build()?;
+        let environment = Arc::new(Environment::builder().build()?);
         let session = SessionBuilder::new(&environment)?
             .with_model_from_file("../model/linear_regression.onnx")?;
         
@@ -24,10 +25,14 @@ impl InferenceEngine {
     }
     
     pub fn predict_single(&self, features: &[f32]) -> Result<f32> {
-        let input_tensor = Value::from_array(self.session.allocator(), &[features])?;
+        let array = ArrayD::from_shape_vec(vec![1, features.len()], features.to_vec())?;
+        let cow_array = CowArray::from(array);
+        let input_tensor = Value::from_array(self.session.allocator(), &cow_array)?;
         let outputs = self.session.run(vec![input_tensor])?;
-        let output = outputs[0].extract_tensor::<f32>()?;
-        Ok(output.view()[0])
+        
+        let output_tensor = outputs[0].try_extract::<f32>()?;
+        let view = output_tensor.view();
+        Ok(view[[0, 0]])
     }
     
     pub fn predict_batch(&self, features: &[Vec<f32>]) -> Result<Vec<f32>> {
@@ -39,17 +44,18 @@ impl InferenceEngine {
             flat_features.extend_from_slice(row);
         }
         
-        let input_tensor = Value::from_array(
-            self.session.allocator(),
-            &flat_features.into_iter()
-                .collect::<Vec<f32>>()
-                .chunks(feature_size)
-                .collect::<Vec<_>>()
-        )?;
-        
+        let array = ArrayD::from_shape_vec(vec![batch_size, feature_size], flat_features)?;
+        let cow_array = CowArray::from(array);
+        let input_tensor = Value::from_array(self.session.allocator(), &cow_array)?;
         let outputs = self.session.run(vec![input_tensor])?;
-        let output = outputs[0].extract_tensor::<f32>()?;
-        Ok(output.view().iter().copied().collect())
+        
+        let output_tensor = outputs[0].try_extract::<f32>()?;
+        let view = output_tensor.view();
+        let mut results = Vec::with_capacity(batch_size);
+        for i in 0..batch_size {
+            results.push(view[[i, 0]]);
+        }
+        Ok(results)
     }
     
     pub fn get_model_info(&self) -> &HashMap<String, serde_json::Value> {
@@ -58,5 +64,6 @@ impl InferenceEngine {
 }
 
 pub fn get_inference_engine() -> Result<&'static InferenceEngine> {
-    INFERENCE_ENGINE.get_or_try_init(|| InferenceEngine::new())
+    INFERENCE_ENGINE.get_or_init(|| InferenceEngine::new().unwrap());
+    Ok(INFERENCE_ENGINE.get().unwrap())
 }

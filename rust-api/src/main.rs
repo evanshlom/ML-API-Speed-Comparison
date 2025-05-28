@@ -1,13 +1,12 @@
 use axum::{routing::get, Router};
 use tower_http::cors::CorsLayer;
-use tracing_subscriber;
 
 mod api;
 mod core;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
 
     let app = Router::new()
         .route("/predict", axum::routing::post(api::handlers::predict))
