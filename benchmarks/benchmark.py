@@ -6,13 +6,27 @@ import concurrent.futures
 from typing import List, Dict
 
 class APIBenchmark:
-    def __init__(self, python_url: str = "http://localhost:8000", rust_url: str = "http://localhost:8001"):
+    def __init__(self, python_url: str = "http://python-api:8000", rust_url: str = "http://rust-api:8001"):
         self.python_url = python_url
         self.rust_url = rust_url
         
         # Load test data
-        with open('../model/test_data.json', 'r') as f:
+        with open('/app/model/test_data.json', 'r') as f:
             self.test_data = json.load(f)
+    
+    def wait_for_apis(self):
+        """Wait for both APIs to be ready"""
+        print("Waiting for APIs to be ready...")
+        for name, url in [("Python", self.python_url), ("Rust", self.rust_url)]:
+            while True:
+                try:
+                    response = requests.get(f"{url}/health", timeout=5)
+                    if response.status_code == 200:
+                        print(f"{name} API is ready!")
+                        break
+                except:
+                    pass
+                time.sleep(2)
     
     def single_request_benchmark(self, url: str, num_requests: int = 100) -> Dict:
         """Benchmark single prediction requests"""
@@ -103,6 +117,9 @@ class APIBenchmark:
         """Run complete benchmark suite"""
         print("Starting benchmarks...")
         
+        # Wait for APIs to be ready
+        self.wait_for_apis()
+        
         results = {
             "python": {},
             "rust": {},
@@ -131,7 +148,7 @@ class APIBenchmark:
                 results[name]["error"] = str(e)
         
         # Save results
-        with open('results/benchmark_results.json', 'w') as f:
+        with open('/app/results/benchmark_results.json', 'w') as f:
             json.dump(results, f, indent=2)
         
         self.print_comparison(results)

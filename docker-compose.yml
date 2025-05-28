@@ -1,20 +1,48 @@
 version: '3.8'
 
 services:
+  # Train model first
+  model-trainer:
+    build:
+      context: .
+      dockerfile: model/Dockerfile
+    volumes:
+      - ./model:/app/model
+    command: python train_model.py
+    profiles: ["training"]
+
+  # Python API
   python-api:
     build: ./python-api
     ports:
       - "8000:8000"
     volumes:
       - ./model:/app/model:ro
+    depends_on:
+      - model-trainer
     environment:
       - PYTHONPATH=/app
-    restart: unless-stopped
 
+  # Rust API
   rust-api:
     build: ./rust-api
     ports:
       - "8001:8001"
     volumes:
       - ./model:/app/model:ro
-    restart: unless-stopped
+    depends_on:
+      - model-trainer
+
+  # Benchmarking service
+  benchmark:
+    build:
+      context: .
+      dockerfile: benchmarks/Dockerfile
+    volumes:
+      - ./benchmarks/results:/app/results
+      - ./model:/app/model:ro
+    depends_on:
+      - python-api
+      - rust-api
+    profiles: ["benchmark"]
+    command: python benchmark.py

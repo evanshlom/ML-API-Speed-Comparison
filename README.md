@@ -6,7 +6,8 @@ Compare ONNX inference performance between Rust (Axum) and Python (FastAPI).
 
 ```bash
 # 1. Train and export model
-cd model && python train_model.py
+cd model
+python train_model.py
 
 # 2. Start both APIs
 docker-compose up
