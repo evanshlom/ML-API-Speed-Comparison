@@ -20,6 +20,14 @@ services:
     environment:
       - PYTHONPATH=/app
 
+  # Rust API
+  rust-api:
+    build: ./rust-api
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./model:/app/model:ro
+
   # Benchmarking service
   benchmark:
     build:
@@ -30,5 +38,6 @@ services:
       - ./model:/app/model:ro
     depends_on:
       - python-api
+      - rust-api
     profiles: ["benchmark"]
     command: python benchmark.py
