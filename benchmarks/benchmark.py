@@ -28,7 +28,7 @@ class APIBenchmark:
                     pass
                 time.sleep(2)
     
-    def single_request_benchmark(self, url: str, num_requests: int = 100) -> Dict:
+    def single_request_benchmark(self, url: str, num_requests: int = 500) -> Dict:  # Increased from 100
         """Benchmark single prediction requests"""
         latencies = []
         
@@ -51,7 +51,7 @@ class APIBenchmark:
             "total_requests": len(latencies)
         }
     
-    def batch_request_benchmark(self, url: str, batch_sizes: List[int] = [1, 10, 50, 100]) -> Dict:
+    def batch_request_benchmark(self, url: str, batch_sizes: List[int] = [1, 10, 50, 100, 200]) -> Dict:  # Added larger batches
         """Benchmark batch prediction requests"""
         results = {}
         
@@ -78,7 +78,7 @@ class APIBenchmark:
         
         return results
     
-    def concurrent_benchmark(self, url: str, concurrent_users: int = 10, requests_per_user: int = 10) -> Dict:
+    def concurrent_benchmark(self, url: str, concurrent_users: int = 20, requests_per_user: int = 25) -> Dict:  # Increased load
         """Benchmark concurrent requests"""
         def make_requests(user_id: int):
             latencies = []
@@ -180,6 +180,18 @@ class APIBenchmark:
             print(f"  Python: {py_concurrent:.1f} req/sec")
             print(f"  Rust:   {rust_concurrent:.1f} req/sec")
             print(f"  Speedup: {throughput_speedup:.2f}x")
+            
+            # Show batch performance for largest batch
+            largest_batch = "batch_200"
+            if largest_batch in results["python"]["batch_requests"] and largest_batch in results["rust"]["batch_requests"]:
+                py_batch = results["python"]["batch_requests"][largest_batch]["throughput_per_sec"]
+                rust_batch = results["rust"]["batch_requests"][largest_batch]["throughput_per_sec"]
+                batch_speedup = rust_batch / py_batch
+                
+                print(f"\nBatch Processing (200 items):")
+                print(f"  Python: {py_batch:.1f} items/sec")
+                print(f"  Rust:   {rust_batch:.1f} items/sec")
+                print(f"  Speedup: {batch_speedup:.2f}x")
 
 if __name__ == "__main__":
     benchmark = APIBenchmark()
