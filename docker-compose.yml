@@ -1,5 +1,4 @@
-version: '3.8'
-
+# docker-compose.yml
 services:
   # Train model first
   model-trainer:
@@ -18,8 +17,6 @@ services:
       - "8000:8000"
     volumes:
       - ./model:/app/model:ro
-    depends_on:
-      - model-trainer
     environment:
       - PYTHONPATH=/app
 
@@ -30,8 +27,6 @@ services:
       - "8001:8001"
     volumes:
       - ./model:/app/model:ro
-    depends_on:
-      - model-trainer
 
   # Benchmarking service
   benchmark:
