@@ -1,5 +1,15 @@
 FROM rust:1.83 as builder
 
+# Install ONNX Runtime in the builder stage
+RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.16.0/onnxruntime-linux-x64-1.16.0.tgz \
+    && tar -xzf onnxruntime-linux-x64-1.16.0.tgz \
+    && cp -r onnxruntime-linux-x64-1.16.0/lib/* /usr/local/lib/ \
+    && cp -r onnxruntime-linux-x64-1.16.0/include/* /usr/local/include/ \
+    && ldconfig \
+    && rm -rf onnxruntime-*
+
+ENV ORT_LIB_LOCATION=/usr/local/lib
+
 WORKDIR /app
 COPY Cargo.toml .
 COPY src/ src/
@@ -12,13 +22,10 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ONNX Runtime with correct symlinks
-RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.16.3/onnxruntime-linux-x64-1.16.3.tgz \
-    && tar -xzf onnxruntime-linux-x64-1.16.3.tgz \
-    && cp onnxruntime-linux-x64-1.16.3/lib/* /usr/lib/ \
-    && ln -sf /usr/lib/libonnxruntime.so.1.16.3 /usr/lib/libonnxruntime.so.1.16.0 \
-    && ln -sf /usr/lib/libonnxruntime.so.1.16.3 /usr/lib/libonnxruntime.so.1 \
-    && ln -sf /usr/lib/libonnxruntime.so.1.16.3 /usr/lib/libonnxruntime.so \
+# Install the exact same ONNX Runtime version
+RUN wget -q https://github.com/microsoft/onnxruntime/releases/download/v1.16.0/onnxruntime-linux-x64-1.16.0.tgz \
+    && tar -xzf onnxruntime-linux-x64-1.16.0.tgz \
+    && cp onnxruntime-linux-x64-1.16.0/lib/* /usr/lib/ \
     && ldconfig \
     && rm -rf onnxruntime-*
 
