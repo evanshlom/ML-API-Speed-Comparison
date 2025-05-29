@@ -41,3 +41,25 @@ services:
       - rust-api
     profiles: ["benchmark"]
     command: python benchmark.py
+
+  concurrent-test:
+    build:
+      context: .
+      dockerfile: benchmarks/Dockerfile
+    volumes:
+      - ./benchmarks/results:/app/results
+      - ./model:/app/model:ro
+    depends_on:
+      - python-api
+      - rust-api
+    profiles: ["concurrent-test"]
+    command: python concurrent_load_test.py
+
+  wrk-test:
+    build:
+      context: ./benchmarks
+      dockerfile: wrk.Dockerfile
+    depends_on:
+      - python-api
+      - rust-api
+    profiles: ["wrk-test"]
